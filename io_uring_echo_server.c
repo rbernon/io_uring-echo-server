@@ -16,6 +16,9 @@
 #ifndef USE_RECVMSG_SENDMSG
 #   define USE_RECVMSG_SENDMSG 0
 #endif
+#ifndef USE_VECTORED_OP
+#   define USE_VECTORED_OP 1
+#endif
 
 #define MAX_CONNECTIONS 1024
 #define BACKLOG 128
@@ -40,9 +43,12 @@ typedef struct conn_info
 } conn_info;
 
 conn_info conns[MAX_CONNECTIONS];
+char bufs[MAX_CONNECTIONS][MAX_MESSAGE_LEN];
+
+#if USE_VECTORED_OP
 struct iovec iovecs[MAX_CONNECTIONS];
 struct msghdr msgs[MAX_CONNECTIONS];
-char bufs[MAX_CONNECTIONS][MAX_MESSAGE_LEN];
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -58,7 +64,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
 
-
+#if USE_VECTORED_OP
     // create conn_info structs
     for (int i = 0; i < MAX_CONNECTIONS - 1; i++)
     {
@@ -67,7 +73,7 @@ int main(int argc, char *argv[])
         msgs[i].msg_iov = &iovecs[i];
         msgs[i].msg_iovlen = 1;
     }
-
+#endif
 
     // setup socket
     int sock_listen_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -214,11 +220,19 @@ void add_poll(struct io_uring* ring, int fd, int type)
 void add_socket_read(struct io_uring* ring, int fd, size_t size) {
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+#if USE_VECTORED_OP
     iovecs[fd].iov_len = size;
-#if USE_RECVMSG_SENDMSG
+#   if USE_RECVMSG_SENDMSG
     io_uring_prep_recvmsg(sqe, fd, &msgs[fd], MSG_NOSIGNAL);
-#else
+#   else
     io_uring_prep_readv(sqe, fd, &iovecs[fd], 1, 0);
+#   endif
+#else
+#   if USE_RECVMSG_SENDMSG
+    io_uring_prep_recv(sqe, fd, bufs[fd], size, MSG_NOSIGNAL);
+#   else
+    io_uring_prep_read(sqe, fd, bufs[fd], size, 0);
+#   endif
 #endif
 
     conn_info *conn_i = &conns[fd];
@@ -231,11 +245,19 @@ void add_socket_read(struct io_uring* ring, int fd, size_t size) {
 void add_socket_write(struct io_uring* ring, int fd, size_t size) {
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+#if USE_VECTORED_OP
     iovecs[fd].iov_len = size;
-#if USE_RECVMSG_SENDMSG
+#   if USE_RECVMSG_SENDMSG
     io_uring_prep_sendmsg(sqe, fd, &msgs[fd], MSG_NOSIGNAL);
-#else
+#   else
     io_uring_prep_writev(sqe, fd, &iovecs[fd], 1, 0);
+#   endif
+#else
+#   if USE_RECVMSG_SENDMSG
+    io_uring_prep_send(sqe, fd, bufs[fd], size, MSG_NOSIGNAL);
+#   else
+    io_uring_prep_write(sqe, fd, bufs[fd], size, 0);
+#   endif
 #endif
 
     conn_info *conn_i = &conns[fd];
