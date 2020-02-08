@@ -1,3 +1,4 @@
 .out
 /io_uring_echo_server
+/epoll_echo_server
 /.vscode

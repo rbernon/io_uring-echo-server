@@ -10,6 +10,10 @@
 
 `./io_uring_echo_server [port_number]`
 
+## Why fork a new repo
+
+Because the original repo [tries to improve performance by not doing the right thing](https://github.com/frevib/io_uring-echo-server/commit/99409e6dcddc1815e35b78a27bb630b20f0eecd7#diff-3bd7f4165bd0d48db65a29389c0eb6c3R202)
+
 ## compare with epoll echo server
 https://github.com/frevib/epoll-echo-server
 
@@ -23,7 +27,8 @@ https://github.com/frevib/epoll-echo-server
 * Compiler: clang version 9.0.1-8build1
 * ./io_uring_echo_server 12345
 
-with `rust_echo_bench`: https://github.com/haraldh/rust_echo_bench
+with `rust_echo_bench`: https://github.com/haraldh/rust_echo_bench  
+unit: request/sec
 
 ### command: `cargo run --release -- -c 50`
 
