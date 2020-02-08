@@ -1,9 +1,11 @@
 # io_uring bare minimum echo server
+
 * uses an event loop created with io_uring
-* uses liburing 0.3
-* Linux 5.4 or higer needed. (Lower versions don't return the right amount of bytes read from `io_uring_prep_readv` in `cqe->res`).
+* uses liburing git HEAD
+* Linux 5.5 or higHer needed. (For IORING_OP_ACCEPT)
 
 ## Install and run
+
 `make`
 
 `./io_uring_echo_server [port_number]`
@@ -13,32 +15,59 @@ https://github.com/frevib/epoll-echo-server
 
 
 ## Benchmarks
-* VMWare Ubuntu 18.04
-* Linux 5.4.12
+
+* VMWare Ubuntu Focal Fossa 20.04 (development branch)
+* Linux carter-virtual-machine 5.5.0-999-generic #202002070204 SMP Fri Feb 7 02:09:27 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
 * 4 virtual cores
-* Macbook pro i7 2,6ghz/32GB
+* Macbook pro i7 2.5GHz/16GB
+* Compiler: clang version 9.0.1-8build1
+* ./io_uring_echo_server 12345
 
 with `rust_echo_bench`: https://github.com/haraldh/rust_echo_bench
 
-command: `cargo run --release -- --address "localhost:6666" --number 50 --duration 60 --length 512`
+### command: `cargo run --release -- -c 50`
 
+POLL_BEFORE_READ | USE_RECV_SEND | USE_UNVECTORED_OP |               method |     1st |     2nd |     3rd |     mid |   rate
+:-:              | :-:           | :-:               |                   -: |      -: |      -: |      -: |      -: |     -:
+0                | 0             | 0                 |         READV-WRITEV |   96891 |   88881 |   92068 |   92068 | 100.0%
+0                | 1             | 0                 |      RECVMSG-SENDMSG |   97500 |   84620 |   89185 |   89185 |  96.9%
+0                | 0             | 1                 |           READ-WRITE |   91115 |  100020 |   90731 |   91115 |  99.0%
+0                | 1             | 1                 |            SEND-RECV |  102389 |   91870 |   98037 |   98037 | 106.5%
+1                | 0             | 0                 |    POLL-READV-WRITEV |  121915 |  128243 |  124675 |  124675 | 135.4%
+1                | 1             | 0                 | POLL-RECVMSG-SENDMSG |  137656 |  133897 |  140219 |  133897 | 145.4%
+1                | 0             | 0                 |      POLL-READ-WRITE |  120866 |  127578 |  138525 |  127578 | 139.6%
+1                | 1             | 1                 |       POLL-RECV-SEND |  148153 |  135844 |  121911 |  135844 | 147.5%
 
-```
-Benchmarking: localhost:5555
-50 clients, running 512 bytes, 60 sec.
+### command: `cargo run --release -- -c 200`
 
-Speed: 435647 request/sec, 435647 response/sec
-Requests: 26138860
-Responses: 26138859
-```
+POLL_BEFORE_READ | USE_RECV_SEND | USE_UNVECTORED_OP |               method |     1st |     2nd |     3rd |     mid |   rate
+:-:              | :-:           | :-:               |                   -: |      -: |      -: |      -: |      -: |     -:
+0                | 0             | 0                 |         READV-WRITEV |   74994 |   73732 |   78733 |   73732 | 100.0%
+0                | 1             | 0                 |      RECVMSG-SENDMSG |   71978 |   70576 |   60764 |   70576 |  95.7%
+0                | 0             | 1                 |           READ-WRITE |   79649 |   86166 |   71532 |   79649 | 108.0%
+0                | 1             | 1                 |            SEND-RECV |   70925 |   71723 |   70954 |   70954 |  96.2%
+1                | 0             | 0                 |    POLL-READV-WRITEV |  118864 |  116717 |  111802 |  111802 | 151.6%
+1                | 1             | 0                 | POLL-RECVMSG-SENDMSG |  117015 |  116070 |  116075 |  116075 | 157.4%
+1                | 0             | 0                 |      POLL-READ-WRITE |  112418 |  110809 |  115982 |  112418 | 152.4%
+1                | 1             | 1                 |       POLL-RECV-SEND |  125556 |  116233 |  109289 |  116233 | 157.6%
 
-## Versions
+### command: `cargo run --release -- -c 1`
 
-### v1.3
-Use pre-allocated `sqe->user_data` instead of dynamically allocating memory
+POLL_BEFORE_READ | USE_RECV_SEND | USE_UNVECTORED_OP |               method |     1st |     2nd |     3rd |     mid |   rate
+:-:              | :-:           | :-:               |                   -: |      -: |      -: |      -: |      -: |     -:
+0                | 0             | 0                 |         READV-WRITEV |   30829 |   23976 |   30819 |   30819 | 100.0%
+0                | 1             | 0                 |      RECVMSG-SENDMSG |   21234 |   24287 |   20465 |   21234 |  68.9%
+0                | 0             | 1                 |           READ-WRITE |   46763 |   29363 |   16340 |   29363 |  95.3%
+0                | 1             | 1                 |            SEND-RECV |   18550 |   11415 |   16741 |   16741 |  54.3%
+1                | 0             | 0                 |    POLL-READV-WRITEV |   14608 |   13044 |   12942 |   13044 |  42.3%
+1                | 1             | 0                 | POLL-RECVMSG-SENDMSG |   16637 |   14697 |   13854 |   14697 |  47.7%
+1                | 0             | 0                 |      POLL-READ-WRITE |   13328 |   13445 |   15478 |   13445 |  43.6%
+1                | 1             | 1                 |       POLL-RECV-SEND |   21349 |   15147 |   14043 |   15147 |  49.1%
 
-### v1.1
-Fix memory leak
+## Summary
 
-### v1.0
-Working release 
+For servers designed for high concurrency:
+
+1. Use `POLL` before `READ`/`RECV`
+1. Use `RECV`/`RECVMSG` instead of `READ`/`READV`
+1. Use `READ`/`RECV` instead of `READV`/`RECVMSG`
