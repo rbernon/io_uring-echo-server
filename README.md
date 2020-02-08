@@ -27,42 +27,42 @@ with `rust_echo_bench`: https://github.com/haraldh/rust_echo_bench
 
 ### command: `cargo run --release -- -c 50`
 
-POLL_BEFORE_READ | USE_RECV_SEND | USE_UNVECTORED_OP |               method |     1st |     2nd |     3rd |     mid |   rate
-:-:              | :-:           | :-:               |                   -: |      -: |      -: |      -: |      -: |     -:
-0                | 0             | 0                 |         READV-WRITEV |   96891 |   88881 |   92068 |   92068 | 100.0%
-0                | 1             | 0                 |      RECVMSG-SENDMSG |   97500 |   84620 |   89185 |   89185 |  96.9%
-0                | 0             | 1                 |           READ-WRITE |   91115 |  100020 |   90731 |   91115 |  99.0%
-0                | 1             | 1                 |            SEND-RECV |  102389 |   91870 |   98037 |   98037 | 106.5%
-1                | 0             | 0                 |    POLL-READV-WRITEV |  121915 |  128243 |  124675 |  124675 | 135.4%
-1                | 1             | 0                 | POLL-RECVMSG-SENDMSG |  137656 |  133897 |  140219 |  133897 | 145.4%
-1                | 0             | 0                 |      POLL-READ-WRITE |  120866 |  127578 |  138525 |  127578 | 139.6%
-1                | 1             | 1                 |       POLL-RECV-SEND |  148153 |  135844 |  121911 |  135844 | 147.5%
+USE_POLL | RECV_SEND | UNVEC_OP |           operations |     1st |     2nd |     3rd |     mid |   rate
+:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
+0        | 0         | 0        |         READV-WRITEV |   96891 |   88881 |   92068 |   92068 | 100.0%
+0        | 1         | 0        |      RECVMSG-SENDMSG |   97500 |   84620 |   89185 |   89185 |  96.9%
+0        | 0         | 1        |           READ-WRITE |   91115 |  100020 |   90731 |   91115 |  99.0%
+0        | 1         | 1        |            SEND-RECV |  102389 |   91870 |   98037 |   98037 | 106.5%
+1        | 0         | 0        |    POLL-READV-WRITEV |  121915 |  128243 |  124675 |  124675 | 135.4%
+1        | 1         | 0        | POLL-RECVMSG-SENDMSG |  137656 |  133897 |  140219 |  133897 | 145.4%
+1        | 0         | 0        |      POLL-READ-WRITE |  120866 |  127578 |  138525 |  127578 | 139.6%
+1        | 1         | 1        |       POLL-RECV-SEND |  148153 |  135844 |  121911 |  135844 | 147.5%
 
 ### command: `cargo run --release -- -c 200`
 
-POLL_BEFORE_READ | USE_RECV_SEND | USE_UNVECTORED_OP |               method |     1st |     2nd |     3rd |     mid |   rate
-:-:              | :-:           | :-:               |                   -: |      -: |      -: |      -: |      -: |     -:
-0                | 0             | 0                 |         READV-WRITEV |   74994 |   73732 |   78733 |   73732 | 100.0%
-0                | 1             | 0                 |      RECVMSG-SENDMSG |   71978 |   70576 |   60764 |   70576 |  95.7%
-0                | 0             | 1                 |           READ-WRITE |   79649 |   86166 |   71532 |   79649 | 108.0%
-0                | 1             | 1                 |            SEND-RECV |   70925 |   71723 |   70954 |   70954 |  96.2%
-1                | 0             | 0                 |    POLL-READV-WRITEV |  118864 |  116717 |  111802 |  111802 | 151.6%
-1                | 1             | 0                 | POLL-RECVMSG-SENDMSG |  117015 |  116070 |  116075 |  116075 | 157.4%
-1                | 0             | 0                 |      POLL-READ-WRITE |  112418 |  110809 |  115982 |  112418 | 152.4%
-1                | 1             | 1                 |       POLL-RECV-SEND |  125556 |  116233 |  109289 |  116233 | 157.6%
+USE_POLL | RECV_SEND | UNVEC_OP |           operations |     1st |     2nd |     3rd |     mid |   rate
+:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
+0        | 0         | 0        |         READV-WRITEV |   74994 |   73732 |   78733 |   73732 | 100.0%
+0        | 1         | 0        |      RECVMSG-SENDMSG |   71978 |   70576 |   60764 |   70576 |  95.7%
+0        | 0         | 1        |           READ-WRITE |   79649 |   86166 |   71532 |   79649 | 108.0%
+0        | 1         | 1        |            SEND-RECV |   70925 |   71723 |   70954 |   70954 |  96.2%
+1        | 0         | 0        |    POLL-READV-WRITEV |  118864 |  116717 |  111802 |  111802 | 151.6%
+1        | 1         | 0        | POLL-RECVMSG-SENDMSG |  117015 |  116070 |  116075 |  116075 | 157.4%
+1        | 0         | 0        |      POLL-READ-WRITE |  112418 |  110809 |  115982 |  112418 | 152.4%
+1        | 1         | 1        |       POLL-RECV-SEND |  125556 |  116233 |  109289 |  116233 | 157.6%
 
 ### command: `cargo run --release -- -c 1`
 
-POLL_BEFORE_READ | USE_RECV_SEND | USE_UNVECTORED_OP |               method |     1st |     2nd |     3rd |     mid |   rate
-:-:              | :-:           | :-:               |                   -: |      -: |      -: |      -: |      -: |     -:
-0                | 0             | 0                 |         READV-WRITEV |   30829 |   23976 |   30819 |   30819 | 100.0%
-0                | 1             | 0                 |      RECVMSG-SENDMSG |   21234 |   24287 |   20465 |   21234 |  68.9%
-0                | 0             | 1                 |           READ-WRITE |   46763 |   29363 |   16340 |   29363 |  95.3%
-0                | 1             | 1                 |            SEND-RECV |   18550 |   11415 |   16741 |   16741 |  54.3%
-1                | 0             | 0                 |    POLL-READV-WRITEV |   14608 |   13044 |   12942 |   13044 |  42.3%
-1                | 1             | 0                 | POLL-RECVMSG-SENDMSG |   16637 |   14697 |   13854 |   14697 |  47.7%
-1                | 0             | 0                 |      POLL-READ-WRITE |   13328 |   13445 |   15478 |   13445 |  43.6%
-1                | 1             | 1                 |       POLL-RECV-SEND |   21349 |   15147 |   14043 |   15147 |  49.1%
+USE_POLL | RECV_SEND | UNVEC_OP |           operations |     1st |     2nd |     3rd |     mid |   rate
+:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
+0        | 0         | 0        |         READV-WRITEV |   30829 |   23976 |   30819 |   30819 | 100.0%
+0        | 1         | 0        |      RECVMSG-SENDMSG |   21234 |   24287 |   20465 |   21234 |  68.9%
+0        | 0         | 1        |           READ-WRITE |   46763 |   29363 |   16340 |   29363 |  95.3%
+0        | 1         | 1        |            SEND-RECV |   18550 |   11415 |   16741 |   16741 |  54.3%
+1        | 0         | 0        |    POLL-READV-WRITEV |   14608 |   13044 |   12942 |   13044 |  42.3%
+1        | 1         | 0        | POLL-RECVMSG-SENDMSG |   16637 |   14697 |   13854 |   14697 |  47.7%
+1        | 0         | 0        |      POLL-READ-WRITE |   13328 |   13445 |   15478 |   13445 |  43.6%
+1        | 1         | 1        |       POLL-RECV-SEND |   21349 |   15147 |   14043 |   15147 |  49.1%
 
 ## Summary
 

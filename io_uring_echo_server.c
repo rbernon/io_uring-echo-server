@@ -15,15 +15,16 @@
 #include "liburing.h"
 
 /* adjust these macros to benchmark various operations */
-#define POLL_BEFORE_READ 0
+#define USE_POLL 0
 #define USE_RECV_SEND 0
-#define USE_UNVECTORED_OP 0
+#define USE_UNVEC_OP 0
 
 #define MAX_CONNECTIONS 1024
 #define BACKLOG 128
 #define MAX_MESSAGE_LEN 1024
 
-enum {
+enum
+{
 	ACCEPT,
 	POLL,
 	READ,
@@ -51,7 +52,7 @@ static void add_accept(struct io_uring *ring, int fd, struct sockaddr *client_ad
 	io_uring_submit(ring);
 }
 
-#if POLL_BEFORE_READ
+#if USE_POLL
 static void add_poll(struct io_uring *ring, int fd, int poll_mask)
 {
 	struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
@@ -74,7 +75,7 @@ static void add_socket_read(struct io_uring *ring, int fd, size_t size)
 		.type = READ
 	};
 
-#if USE_UNVECTORED_OP
+#if USE_UNVEC_OP
 #	if USE_RECV_SEND
 	io_uring_prep_recv(sqe, fd, bufs[fd], size, MSG_NOSIGNAL);
 #	else
@@ -108,7 +109,7 @@ static void add_socket_write(struct io_uring *ring, int fd, size_t size)
 		.type = WRITE
 	};
 
-#if USE_UNVECTORED_OP
+#if USE_UNVEC_OP
 #	if USE_RECV_SEND
 	io_uring_prep_send(sqe, fd, bufs[fd], size, MSG_NOSIGNAL);
 #	else
@@ -207,7 +208,7 @@ int main(int argc, char *argv[])
 		switch (conn_i.type)
 		{
 		case ACCEPT:
-#if POLL_BEFORE_READ
+#if USE_POLL
 			add_poll(&ring, result, POLLIN);
 #else
 			add_socket_read(&ring, result, MAX_MESSAGE_LEN);
@@ -215,7 +216,7 @@ int main(int argc, char *argv[])
 			add_accept(&ring, sock_listen_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_len, 0);
 			break;
 
-#if POLL_BEFORE_READ
+#if USE_POLL
 		case POLL:
 			add_socket_read(&ring, conn_i.fd, MAX_MESSAGE_LEN);
 			break;
@@ -229,7 +230,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case WRITE:
-#if POLL_BEFORE_READ
+#if USE_POLL
 			add_poll(&ring, conn_i.fd, POLLIN);
 #else
 			add_socket_read(&ring, conn_i.fd, MAX_MESSAGE_LEN);
