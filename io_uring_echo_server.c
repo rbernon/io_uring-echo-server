@@ -1,16 +1,11 @@
-/*
- * gcc -Wall -O2 -D_GNU_SOURCE -o io_uring_echo_server io_uring_echo_server.c -luring
- */
-#include <unistd.h>
-#include <fcntl.h>
 #include <stdio.h>
-#include <string.h>
-#include <strings.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
+#include <netinet/in.h>
 
 #include <liburing.h>
 
