@@ -4,19 +4,13 @@
 * uses liburing git HEAD
 * Linux 5.5 or higHer needed. (For IORING_OP_ACCEPT)
 
-## Install and run
+## Build
 
 `make`
-
-`./io_uring_echo_server [port_number]`
 
 ## Why fork a new repo
 
 Because the original repo [tries to improve performance by not doing the right thing](https://github.com/frevib/io_uring-echo-server/commit/99409e6dcddc1815e35b78a27bb630b20f0eecd7#diff-3bd7f4165bd0d48db65a29389c0eb6c3R202)
-
-## compare with epoll echo server
-https://github.com/frevib/epoll-echo-server
-
 
 ## Benchmarks
 
@@ -25,54 +19,48 @@ https://github.com/frevib/epoll-echo-server
 * 4 virtual cores
 * Macbook pro i7 2.5GHz/16GB
 * Compiler: clang version 9.0.1-8build1
-* ./io_uring_echo_server 12345
+* ./io_uring_echo_server 12345 ( for io_uring version )
+* ./epoll_echo_server 12345 ( for epoll version )
 
 with `rust_echo_bench`: https://github.com/haraldh/rust_echo_bench  
 unit: request/sec
 
 ### command: `cargo run --release -- -c 50`
 
-USE_POLL | RECV_SEND | UNVEC_OP |           operations |     1st |     2nd |     3rd |     mid |   rate
+USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |   rate
 :-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
-0        | 0         | 0        |         READV-WRITEV |   96891 |   88881 |   92068 |   92068 | 100.0%
-0        | 1         | 0        |      RECVMSG-SENDMSG |   97500 |   84620 |   89185 |   89185 |  96.9%
-0        | 0         | 1        |           READ-WRITE |   91115 |  100020 |   90731 |   91115 |  99.0%
-0        | 1         | 1        |            SEND-RECV |  102389 |   91870 |   98037 |   98037 | 106.5%
-1        | 0         | 0        |    POLL-READV-WRITEV |  121915 |  128243 |  124675 |  124675 | 135.4%
-1        | 1         | 0        | POLL-RECVMSG-SENDMSG |  137656 |  133897 |  140219 |  133897 | 145.4%
-1        | 0         | 0        |      POLL-READ-WRITE |  120866 |  127578 |  138525 |  127578 | 139.6%
-1        | 1         | 1        |       POLL-RECV-SEND |  148153 |  135844 |  121911 |  135844 | 147.5%
+1        | 0         | io_uring |  POLL-READ_F-WRITE_F |  138703 |  138243 |  106670 |  138243 | 101.8%
+1        | 1         | io_uring |       POLL-RECV-SEND |  130602 |  118856 |  121214 |  121214 |  89.3%
+0        | 0         | io_uring |       READ_F-WRITE_F |  100700 |   98616 |  100765 |  100700 |  74.2%
+0        | 1         | io_uring |            SEND-RECV |   99820 |  101221 |   97617 |   99820 |  73.5%
+N/A      | 0         | epoll    |      POLL-READ-WRITE |  134392 |  133448 |  129621 |  133448 |  98.3%
+N/A      | 1         | epoll    |       POLL-RECV-SEND |  146344 |  135762 |  132244 |  135762 | 100.0%
 
 ### command: `cargo run --release -- -c 200`
 
-USE_POLL | RECV_SEND | UNVEC_OP |           operations |     1st |     2nd |     3rd |     mid |   rate
+USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |   rate
 :-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
-0        | 0         | 0        |         READV-WRITEV |   74994 |   73732 |   78733 |   73732 | 100.0%
-0        | 1         | 0        |      RECVMSG-SENDMSG |   71978 |   70576 |   60764 |   70576 |  95.7%
-0        | 0         | 1        |           READ-WRITE |   79649 |   86166 |   71532 |   79649 | 108.0%
-0        | 1         | 1        |            SEND-RECV |   70925 |   71723 |   70954 |   70954 |  96.2%
-1        | 0         | 0        |    POLL-READV-WRITEV |  118864 |  116717 |  111802 |  111802 | 151.6%
-1        | 1         | 0        | POLL-RECVMSG-SENDMSG |  117015 |  116070 |  116075 |  116075 | 157.4%
-1        | 0         | 0        |      POLL-READ-WRITE |  112418 |  110809 |  115982 |  112418 | 152.4%
-1        | 1         | 1        |       POLL-RECV-SEND |  125556 |  116233 |  109289 |  116233 | 157.6%
+1        | 0         | io_uring |  POLL-READ_F-WRITE_F |  119847 |  125897 |  125195 |  125195 |  95.3%
+1        | 1         | io_uring |       POLL-RECV-SEND |  110159 |  116585 |  110357 |  110357 |  84.0%
+0        | 0         | io_uring |       READ_F-WRITE_F |   94746 |   80826 |   86860 |   86860 |  66.1%
+0        | 1         | io_uring |            SEND-RECV |   80476 |   69946 |   67670 |   69946 |  53.2%
+N/A      | 0         | epoll    |      POLL-READ-WRITE |  139460 |  138487 |  137974 |  138487 | 105.4%
+N/A      | 1         | epoll    |       POLL-RECV-SEND |  127384 |  135416 |  131435 |  131435 | 100.0%
 
 ### command: `cargo run --release -- -c 1`
 
-USE_POLL | RECV_SEND | UNVEC_OP |           operations |     1st |     2nd |     3rd |     mid |   rate
+USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |   rate
 :-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
-0        | 0         | 0        |         READV-WRITEV |   30829 |   23976 |   30819 |   30819 | 100.0%
-0        | 1         | 0        |      RECVMSG-SENDMSG |   21234 |   24287 |   20465 |   21234 |  68.9%
-0        | 0         | 1        |           READ-WRITE |   46763 |   29363 |   16340 |   29363 |  95.3%
-0        | 1         | 1        |            SEND-RECV |   18550 |   11415 |   16741 |   16741 |  54.3%
-1        | 0         | 0        |    POLL-READV-WRITEV |   14608 |   13044 |   12942 |   13044 |  42.3%
-1        | 1         | 0        | POLL-RECVMSG-SENDMSG |   16637 |   14697 |   13854 |   14697 |  47.7%
-1        | 0         | 0        |      POLL-READ-WRITE |   13328 |   13445 |   15478 |   13445 |  43.6%
-1        | 1         | 1        |       POLL-RECV-SEND |   21349 |   15147 |   14043 |   15147 |  49.1%
+1        | 0         | io_uring |  POLL-READ_F-WRITE_F |   15623 |   17776 |   18675 |   17776 | 118.9%
+1        | 1         | io_uring |       POLL-RECV-SEND |   19056 |   14811 |   14145 |   14811 |  99.1%
+0        | 0         | io_uring |       READ_F-WRITE_F |   40785 |   38171 |   43963 |   40785 | 272.9%
+0        | 1         | io_uring |            SEND-RECV |   20377 |   25152 |   15089 |   20377 | 136.3%
+N/A      | 0         | epoll    |      POLL-READ-WRITE |   16105 |   14227 |   15672 |   15672 | 104.9%
+N/A      | 1         | epoll    |       POLL-RECV-SEND |   18596 |   14076 |   14946 |   14946 | 100.0%
 
 ## Summary
 
 For servers designed for high concurrency:
 
-1. Use `POLL` before `READ`/`RECV`
-1. Use `RECV`/`RECVMSG` instead of `READ`/`READV`
-1. Use `READ`/`RECV` instead of `READV`/`RECVMSG`
+1. io_uring won't improve much performance over epoll, at least for networking
+1. Always `POLL` before `READ`/`RECV`

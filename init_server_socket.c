@@ -5,8 +5,8 @@
 
 #include "global.h"
 
-int init_socket(int portno, int type) {
-	int sock_listen_fd = socket(AF_INET, SOCK_STREAM | type, 0);
+int init_socket(int portno) {
+	int sock_listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock_listen_fd < 0) {
 		perror("socket");
 		return -1;

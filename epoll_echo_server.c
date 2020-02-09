@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	int portno = strtol(argv[1], NULL, 10);
-	int sock_listen_fd = init_socket(portno, SOCK_NONBLOCK);
+	int sock_listen_fd = init_socket(portno);
 	printf("epoll echo server listening for connections on port: %d\n", portno);
 
 
@@ -56,30 +56,29 @@ int main(int argc, char *argv[]) {
 
 		for (int i = 0; i < new_events; ++i) {
 			int fd = events[i].data.fd;
-			if (fd == sock_listen_fd) {
-				int sock_conn_fd = accept4(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, 0);
-				if (sock_conn_fd == -1) {
+			if (__builtin_expect(fd == sock_listen_fd, 0)) {
+				int sock_conn_fd = accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len);
+				if (__builtin_expect(sock_conn_fd < 0, 0)) {
 					perror("accept4");
 					return -1;
 				}
-
-				add_poll(epfd, sock_conn_fd, EPOLLIN | EPOLLET);
+				add_poll(epfd, sock_conn_fd, EPOLLIN);
 			} else {
 				char buffer[MAX_MESSAGE_LEN];
-				int bytes_read =
+
 #if USE_RECV_SEND
-					recv(fd, buffer, MAX_MESSAGE_LEN, MSG_NOSIGNAL);
+				int bytes_read = recv(fd, buffer, MAX_MESSAGE_LEN, MSG_NOSIGNAL);
 #else
-					read(fd, buffer, MAX_MESSAGE_LEN);
+				int bytes_read = read(fd, buffer, MAX_MESSAGE_LEN);
 #endif
-				if (bytes_read <= 0) {
+				if (__builtin_expect(bytes_read <= 0, 0)) {
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 					shutdown(fd, SHUT_RDWR);
 				} else {
 #if USE_RECV_SEND
 					send(fd, buffer, bytes_read, MSG_NOSIGNAL);
 #else
-					write(fd, buffer, MAX_MESSAGE_LEN);
+					write(fd, buffer, bytes_read);
 #endif
 				}
 			}
