@@ -1,4 +1,4 @@
-CCFLAGS ?= -g -Wall -O3 -D_GNU_SOURCE -luring -march=native
+CCFLAGS ?= -g -Wall -O3 -D_GNU_SOURCE -luring -march=native -DNDEBUG
 
 all_targets = io_uring_echo_server epoll_echo_server
 

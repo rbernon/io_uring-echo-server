@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
 
 	int portno = strtol(argv[1], NULL, 10);
 	int sock_listen_fd = init_socket(portno);
+	if (sock_listen_fd < 0) return -1;
 	printf("epoll echo server listening for connections on port: %d\n", portno);
 
 

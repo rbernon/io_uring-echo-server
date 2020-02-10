@@ -27,40 +27,33 @@ unit: request/sec
 
 ### command: `cargo run --release -- -c 50`
 
-USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |   rate
-:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
-1        | 0         | io_uring |  POLL-READ_F-WRITE_F |  138703 |  138243 |  106670 |  138243 | 101.8%
-1        | 1         | io_uring |       POLL-RECV-SEND |  130602 |  118856 |  121214 |  121214 |  89.3%
-0        | 0         | io_uring |       READ_F-WRITE_F |  100700 |   98616 |  100765 |  100700 |  74.2%
-0        | 1         | io_uring |            SEND-RECV |   99820 |  101221 |   97617 |   99820 |  73.5%
-N/A      | 0         | epoll    |      POLL-READ-WRITE |  134392 |  133448 |  129621 |  133448 |  98.3%
-N/A      | 1         | epoll    |       POLL-RECV-SEND |  146344 |  135762 |  132244 |  135762 | 100.0%
+USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |    rate
+:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |      -:
+1        | 0         | io_uring |  POLL-READ_F-WRITE_F |  150637 |  149408 |  153421 |  150637 | 101.40%
+1        | 1         | io_uring |       POLL-RECV-SEND |  158517 |  163899 |  156310 |  158517 | 106.70%
+0        | 0         | io_uring |       READ_F-WRITE_F |   87740 |   83988 |   91266 |   87740 |  59.06%
+0        | 1         | io_uring |            SEND-RECV |   88967 |   85187 |   80674 |   85187 |  57.34%
+N/A      | 0         | epoll    |      POLL-READ-WRITE |  152407 |  148379 |  150991 |  150991 | 101.64%
+N/A      | 1         | epoll    |       POLL-RECV-SEND |  148557 |  148124 |  148606 |  148557 | 100.00%
 
 ### command: `cargo run --release -- -c 200`
 
-USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |   rate
-:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
-1        | 0         | io_uring |  POLL-READ_F-WRITE_F |  119847 |  125897 |  125195 |  125195 |  95.3%
-1        | 1         | io_uring |       POLL-RECV-SEND |  110159 |  116585 |  110357 |  110357 |  84.0%
-0        | 0         | io_uring |       READ_F-WRITE_F |   94746 |   80826 |   86860 |   86860 |  66.1%
-0        | 1         | io_uring |            SEND-RECV |   80476 |   69946 |   67670 |   69946 |  53.2%
-N/A      | 0         | epoll    |      POLL-READ-WRITE |  139460 |  138487 |  137974 |  138487 | 105.4%
-N/A      | 1         | epoll    |       POLL-RECV-SEND |  127384 |  135416 |  131435 |  131435 | 100.0%
+USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |    rate
+:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |      -:
+1        | 0         | io_uring |  POLL-READ_F-WRITE_F |  146183 |  143251 |  146514 |  146183 |  98.75%
+1        | 1         | io_uring |       POLL-RECV-SEND |  150691 |  151855 |  147474 |  150691 | 101.79%
+0        | 0         | io_uring |       READ_F-WRITE_F |   78388 |   76215 |   77005 |   77005 |  52.02%
+0        | 1         | io_uring |            SEND-RECV |   76152 |   69351 |   76097 |   76097 |  51.40%
+N/A      | 0         | epoll    |      POLL-READ-WRITE |  148472 |  145701 |  147827 |  147827 |  99.86%
+N/A      | 1         | epoll    |       POLL-RECV-SEND |  155998 |  156516 |  155453 |  156516 | 100.00%
 
 ### command: `cargo run --release -- -c 1`
 
-USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |   rate
-:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |     -:
-1        | 0         | io_uring |  POLL-READ_F-WRITE_F |   15623 |   17776 |   18675 |   17776 | 118.9%
-1        | 1         | io_uring |       POLL-RECV-SEND |   19056 |   14811 |   14145 |   14811 |  99.1%
-0        | 0         | io_uring |       READ_F-WRITE_F |   40785 |   38171 |   43963 |   40785 | 272.9%
-0        | 1         | io_uring |            SEND-RECV |   20377 |   25152 |   15089 |   20377 | 136.3%
-N/A      | 0         | epoll    |      POLL-READ-WRITE |   16105 |   14227 |   15672 |   15672 | 104.9%
-N/A      | 1         | epoll    |       POLL-RECV-SEND |   18596 |   14076 |   14946 |   14946 | 100.0%
-
-## Summary
-
-For servers designed for high concurrency:
-
-1. io_uring won't improve much performance over epoll, at least for networking
-1. Always `POLL` before `READ`/`RECV`
+USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |     3rd |     mid |    rate
+:-:      | :-:       | :-:      |                   -: |      -: |      -: |      -: |      -: |      -:
+1        | 0         | io_uring |  POLL-READ_F-WRITE_F |   15623 |   17776 |   18675 |   17776 | 118.93%
+1        | 1         | io_uring |       POLL-RECV-SEND |   19056 |   14811 |   14145 |   14811 |  99.10%
+0        | 0         | io_uring |       READ_F-WRITE_F |   48117 |   37423 |   46210 |   46210 | 309.18%
+0        | 1         | io_uring |            SEND-RECV |   22971 |   21146 |   20152 |   21146 | 141.48%
+N/A      | 0         | epoll    |      POLL-READ-WRITE |   16105 |   14227 |   15672 |   15672 | 104.86%
+N/A      | 1         | epoll    |       POLL-RECV-SEND |   18596 |   14076 |   14946 |   14946 | 100.00%
