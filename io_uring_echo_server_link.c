@@ -13,7 +13,7 @@
 
 #define MAX_CONNECTIONS 1024
 
-enum { ACCEPT, POLL_ACCEPT, POLL_READ, READ, WRITE };
+enum { ACCEPT, POLL, READ, WRITE };
 
 struct conn_info {
 	__u32 fd;
@@ -45,27 +45,21 @@ static void add_accept(int fd, struct sockaddr *client_addr, socklen_t *client_l
 	};
 
 	io_uring_prep_accept(sqe, fd, client_addr, client_len, flags);
-	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
-#if !USE_RECV_SEND
 	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-#endif
+	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
 }
 
-#if USE_POLL
-static void add_poll(int fd, int poll_mask, int type) {
+static void add_poll(int fd, int poll_mask) {
 	struct io_uring_sqe *sqe = get_sqe_safe();
 	struct conn_info conn_i = {
 		.fd = fd,
-		.type = type,
+		.type = POLL,
 	};
 
 	io_uring_prep_poll_add(sqe, fd, poll_mask);
+	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | IOSQE_IO_LINK);
 	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
-#if !USE_RECV_SEND
-	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-#endif
 }
-#endif
 
 static void add_socket_read(int fd, size_t size, buf_type *bufs) {
 	struct io_uring_sqe *sqe = get_sqe_safe();
@@ -74,13 +68,8 @@ static void add_socket_read(int fd, size_t size, buf_type *bufs) {
 		.type = READ,
 	};
 
-#if USE_RECV_SEND
-	io_uring_prep_recv(sqe, fd, (*bufs)[fd], size, MSG_NOSIGNAL);
-#else
 	io_uring_prep_read_fixed(sqe, fd, (*bufs)[fd], size, 0, fd);
-	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-#endif
-
+	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | IOSQE_IO_LINK);
 	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
 }
 
@@ -91,13 +80,8 @@ static void add_socket_write(int fd, size_t size, buf_type *bufs) {
 		.type = WRITE,
 	};
 
-#if USE_RECV_SEND
-	io_uring_prep_send(sqe, fd, (*bufs)[fd], size, MSG_NOSIGNAL);
-#else
 	io_uring_prep_write_fixed(sqe, fd, (*bufs)[fd], size, 0, fd);
 	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-#endif
-
 	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
 }
 
@@ -121,7 +105,6 @@ int main(int argc, char *argv[]) {
 
 	buf_type *bufs = (buf_type *)malloc(sizeof(*bufs));
 
-#if !USE_RECV_SEND
 	{
 		int fds[MAX_CONNECTIONS];
 		memset(fds, -1, sizeof(fds));
@@ -137,15 +120,10 @@ int main(int argc, char *argv[]) {
 		}
 		io_uring_register_buffers(&ring, iovecs, MAX_CONNECTIONS);
 	}
-#endif
 
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
-#if USE_POLL
-	add_poll(sock_listen_fd, POLLIN, POLL_ACCEPT);
-#else
 	add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, 0);
-#endif
 
 	while (1) {
 		io_uring_submit_and_wait(&ring, 1);
@@ -162,46 +140,36 @@ int main(int argc, char *argv[]) {
 
 			switch (conn_i.type) {
 			case ACCEPT:
-#if !USE_RECV_SEND
 				io_uring_register_files_update(&ring, result, &result, 1);
-#endif
-#if USE_POLL
-				add_poll(result, POLLIN, POLL_READ);
-				add_poll(sock_listen_fd, POLLIN, POLL_ACCEPT);
-#else
+				add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, 0);
+				add_poll(result, POLLIN);
 				add_socket_read(result, MAX_MESSAGE_LEN, bufs);
-				add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, 0);
-#endif
+				add_socket_write(result, MAX_MESSAGE_LEN, bufs);
 				break;
 
-#if USE_POLL
-			case POLL_ACCEPT:
-				add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, 0);
+			case POLL:
+				// Do nothing
 				break;
-
-			case POLL_READ:
-				add_socket_read(conn_i.fd, MAX_MESSAGE_LEN, bufs);
-				break;
-#endif
 
 			case READ:
 				if (__builtin_expect(result <= 0, 0)) {
 					shutdown(conn_i.fd, SHUT_RDWR);
-				} else {
+				} else if (__builtin_expect(result < MAX_MESSAGE_LEN, 0)) {
 					add_socket_write(conn_i.fd, result, bufs);
 				}
 				break;
 
 			case WRITE:
-#if USE_POLL
-				add_poll(conn_i.fd, POLLIN, POLL_READ);
-#else
-				add_socket_read(conn_i.fd, MAX_MESSAGE_LEN, bufs);
-#endif
+				if (__builtin_expect(result >= 0, 1)) {
+					add_poll(conn_i.fd, POLLIN);
+					add_socket_read(conn_i.fd, MAX_MESSAGE_LEN, bufs);
+					add_socket_write(conn_i.fd, MAX_MESSAGE_LEN, bufs);
+				}
 				break;
 			}
 		}
 
+		printf("cqe_count: %d\n", cqe_count);
 		io_uring_cq_advance(&ring, cqe_count);
 		cqe_count = 0;
 	}
