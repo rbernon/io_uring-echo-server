@@ -44,10 +44,12 @@ static void add_accept(int fd, struct sockaddr *client_addr, socklen_t *client_l
 		.type = ACCEPT,
 	};
 
-	io_uring_prep_accept(sqe, fd, client_addr, client_len, flags);
+	io_uring_prep_accept(sqe, fd, client_addr, client_len, 0);
 	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
-#if !USE_RECV_SEND
-	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+#if USE_RECV_SEND
+	io_uring_sqe_set_flags(sqe, flags);
+#else
+	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | flags);
 #endif
 }
 
@@ -67,7 +69,7 @@ static void add_poll(int fd, int poll_mask, int type) {
 }
 #endif
 
-static void add_socket_read(int fd, size_t size, buf_type *bufs) {
+static void add_socket_read(int fd, size_t size, buf_type *bufs, unsigned flags) {
 	struct io_uring_sqe *sqe = get_sqe_safe();
 	struct conn_info conn_i = {
 		.fd = fd,
@@ -76,15 +78,16 @@ static void add_socket_read(int fd, size_t size, buf_type *bufs) {
 
 #if USE_RECV_SEND
 	io_uring_prep_recv(sqe, fd, (*bufs)[fd], size, MSG_NOSIGNAL);
+	io_uring_sqe_set_flags(sqe, flags);
 #else
 	io_uring_prep_read_fixed(sqe, fd, (*bufs)[fd], size, 0, fd);
-	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | flags);
 #endif
 
 	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
 }
 
-static void add_socket_write(int fd, size_t size, buf_type *bufs) {
+static void add_socket_write(int fd, size_t size, buf_type *bufs, unsigned flags) {
 	struct io_uring_sqe *sqe = get_sqe_safe();
 	struct conn_info conn_i = {
 		.fd = fd,
@@ -93,9 +96,10 @@ static void add_socket_write(int fd, size_t size, buf_type *bufs) {
 
 #if USE_RECV_SEND
 	io_uring_prep_send(sqe, fd, (*bufs)[fd], size, MSG_NOSIGNAL);
+	io_uring_sqe_set_flags(sqe, flags);
 #else
 	io_uring_prep_write_fixed(sqe, fd, (*bufs)[fd], size, 0, fd);
-	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | flags);
 #endif
 
 	memcpy(&sqe->user_data, &conn_i, sizeof(conn_i));
@@ -144,7 +148,7 @@ int main(int argc, char *argv[]) {
 #if USE_POLL
 	add_poll(sock_listen_fd, POLLIN, POLL_ACCEPT);
 #else
-	add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, 0);
+	add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, IOSQE_ASYNC);
 #endif
 
 	while (1) {
@@ -169,8 +173,8 @@ int main(int argc, char *argv[]) {
 				add_poll(result, POLLIN, POLL_READ);
 				add_poll(sock_listen_fd, POLLIN, POLL_ACCEPT);
 #else
-				add_socket_read(result, MAX_MESSAGE_LEN, bufs);
-				add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, 0);
+				add_socket_read(result, MAX_MESSAGE_LEN, bufs, IOSQE_ASYNC);
+				add_accept(sock_listen_fd, (struct sockaddr *)&client_addr, &client_len, IOSQE_ASYNC);
 #endif
 				break;
 
@@ -180,7 +184,7 @@ int main(int argc, char *argv[]) {
 				break;
 
 			case POLL_READ:
-				add_socket_read(conn_i.fd, MAX_MESSAGE_LEN, bufs);
+				add_socket_read(conn_i.fd, MAX_MESSAGE_LEN, bufs, 0);
 				break;
 #endif
 
@@ -188,7 +192,7 @@ int main(int argc, char *argv[]) {
 				if (__builtin_expect(result <= 0, 0)) {
 					shutdown(conn_i.fd, SHUT_RDWR);
 				} else {
-					add_socket_write(conn_i.fd, result, bufs);
+					add_socket_write(conn_i.fd, result, bufs, 0);
 				}
 				break;
 
@@ -196,7 +200,7 @@ int main(int argc, char *argv[]) {
 #if USE_POLL
 				add_poll(conn_i.fd, POLLIN, POLL_READ);
 #else
-				add_socket_read(conn_i.fd, MAX_MESSAGE_LEN, bufs);
+				add_socket_read(conn_i.fd, MAX_MESSAGE_LEN, bufs, IOSQE_ASYNC);
 #endif
 				break;
 			}
