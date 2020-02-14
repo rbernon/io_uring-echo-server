@@ -25,7 +25,7 @@ static void add_poll(int epfd, int fd, int poll_mask) {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		printf("Please give a port number: ./epoll_echo_server [port]\n");
+		fprintf(stderr, "Please give a port number: %s [port]\n", argv[0]);
 		return 1;
 	}
 

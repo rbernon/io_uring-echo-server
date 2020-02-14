@@ -35,6 +35,8 @@ USE_POLL | RECV_SEND | EV MODEL |           operations |     1st |     2nd |    
 0        | 1         | io_uring |            SEND-RECV |   88967 |   85187 |   80674 |   85187 |  57.34%
 N/A      | 0         | epoll    |      POLL-READ-WRITE |  152407 |  148379 |  150991 |  150991 | 101.64%
 N/A      | 1         | epoll    |       POLL-RECV-SEND |  148557 |  148124 |  148606 |  148557 | 100.00%
+IO_LINK  | 1         | io_uring |       POLL-RECV-SEND |  105464 |  109249 |  106085 |  106085 |  71.41%
+IO_LINK  | 0         | io_uring |  POLL-READ_F-WRITE_F |  108518 |  108715 |  105832 |  108518 |  73.05%
 
 ### command: `cargo run --release -- -c 200`
 

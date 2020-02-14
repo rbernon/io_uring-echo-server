@@ -87,7 +87,7 @@ static void add_socket_write(int fd, size_t size, buf_type *bufs) {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		fprintf(stderr, "Please give a port number: ./io_uring_echo_server [port]\n");
+		fprintf(stderr, "Please give a port number: %s [port]\n", argv[0]);
 		return 1;
 	}
 
@@ -152,6 +152,7 @@ int main(int argc, char *argv[]) {
 				break;
 
 			case READ:
+				// A short read happened, op write will be canceled
 				if (__builtin_expect(result <= 0, 0)) {
 					shutdown(conn_i.fd, SHUT_RDWR);
 				} else if (__builtin_expect(result < MAX_MESSAGE_LEN, 0)) {
@@ -169,7 +170,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		printf("cqe_count: %d\n", cqe_count);
 		io_uring_cq_advance(&ring, cqe_count);
 		cqe_count = 0;
 	}
