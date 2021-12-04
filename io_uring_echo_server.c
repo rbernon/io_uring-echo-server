@@ -15,8 +15,6 @@
 
 #include "global.h"
 
-#define MAX_CONNECTIONS 1024
-
 enum { ACCEPT, POLL_ACCEPT, POLL_READ, READ, WRITE };
 
 struct conn_info {
