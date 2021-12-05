@@ -59,12 +59,15 @@ static void add_write_read_sqes(int write_fd, size_t write, int read_fd, size_t 
 	struct io_uring_sqe *sqe;
 	int fd;
 
-#define IOSQE_CQE_SKIP_SUCCESS	(1U << (IOSQE_BUFFER_SELECT_BIT + 1))
 	op.type = NONE;
 	op.fd = fd = write_fd;
 	sqe = io_uring_get_sqe(&ring);
 	io_uring_prep_write_fixed(sqe, fd, (*bufs)[fd], write, 0, fd);
+#if USE_SKIP_SUCCESS
 	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | IOSQE_IO_LINK | IOSQE_CQE_SKIP_SUCCESS);
+#else
+	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | IOSQE_IO_LINK);
+#endif
 	memcpy(&sqe->user_data, &op, sizeof(op));
 
 	op.type = READ;
@@ -146,6 +149,7 @@ int main(int argc, char *argv[]) {
 		io_uring_for_each_cqe(&ring, head, cqe) {
 			struct iou_op op;
 			memcpy(&op, &cqe->user_data, sizeof(op));
+			assert(cqe->res == MAX_MESSAGE_LEN);
 
 			switch (op.type) {
 			case READ:
@@ -167,7 +171,9 @@ int main(int argc, char *argv[]) {
 #endif
 
 			case NONE:
+#if USE_SKIP_SUCCESS
 				assert(0);
+#endif
 				break;
 			}
 

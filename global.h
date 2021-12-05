@@ -5,6 +5,7 @@
 #define USE_SPLICE 0
 #define USE_RECV_SEND 1
 #define USE_WRITE_READ 1
+#define USE_SKIP_SUCCESS 0
 
 #define BACKLOG 128
 #define MAX_MESSAGE_LEN 64
