@@ -74,7 +74,7 @@ static void add_write_read_sqes(int write_fd, size_t write, int read_fd, size_t 
 	op.fd = fd = read_fd;
 	sqe = io_uring_get_sqe(&ring);
 	io_uring_prep_read_fixed(sqe, fd, (*bufs)[fd], read, 0, fd);
-	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE | IOSQE_ASYNC);
+	io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
 	memcpy(&sqe->user_data, &op, sizeof(op));
 }
 #endif
