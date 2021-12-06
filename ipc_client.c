@@ -16,7 +16,7 @@ static void *ipc_client_thread(void *arg)
 	size_t ns, ns_per_s = 1000000000;
 	char buffer[MAX_MESSAGE_LEN];
 	struct timespec ts0, ts1;
-	int i, *fds = arg;
+	int i, *fds = arg, ret;
 
 	sprintf(buffer, "ipc client %u", count++);
 	pthread_setname_np(pthread_self(), buffer);
@@ -27,8 +27,10 @@ static void *ipc_client_thread(void *arg)
 		for (i = 0; i < 100000; ++i)
 		{
 			*((size_t *)buffer + 0) = ts0.tv_nsec + i;
-			write(fds[1], buffer, MAX_MESSAGE_LEN);
-			read(fds[0], buffer, MAX_MESSAGE_LEN);
+			ret = write(fds[1], buffer, MAX_MESSAGE_LEN);
+			assert(ret == MAX_MESSAGE_LEN);
+			ret = read(fds[0], buffer, MAX_MESSAGE_LEN);
+			assert(ret == MAX_MESSAGE_LEN);
 			assert(*((size_t *)buffer + 1) == ts0.tv_nsec + i);
 		}
 		clock_gettime(CLOCK_MONOTONIC, &ts1);
